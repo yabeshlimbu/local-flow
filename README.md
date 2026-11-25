@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/icon.png" alt="LocalFlow app icon" width="128"></p>
+
 # LocalFlow
 
 Voice dictation for macOS that runs entirely on your Mac. Hold a key in any app, speak, let go, and polished text appears at your cursor. Speech recognition uses Whisper (MLX on Apple Silicon) and editing uses a local LLM through Ollama. Nothing leaves the machine and there's no word limit.
@@ -60,6 +62,7 @@ Measured on this Mac (M5): about 0.8 s to transcribe a 7-second clip and 0.4–1
 ## Files
 
 - `localflow/`: the app. `app.py` is the menu bar and dictation flow, `hotkey.py` the fn/modifier event tap, `audio.py` microphone capture, `stt.py` Whisper, `editor.py` AI edits, snippets, dictionary and Command Mode, `notetaker.py` meetings, `dashboard.py` with `static/index.html` the local web UI, `overlay.py` the Flow bar.
+- `tools/make-icon.swift`: draws the app icon. To regenerate it, run `swift tools/make-icon.swift docs/images/icon.png`, rebuild `Resources/AppIcon.icns`, then run `packaging/build_app.sh`.
 - Data: `~/Library/Application Support/LocalFlow/` (settings.json, localflow.db, recordings/)
 - Log: `~/Library/Logs/LocalFlow.log`
 
