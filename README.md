@@ -62,3 +62,7 @@ Measured on this Mac (M5): about 0.8 s to transcribe a 7-second clip and 0.4–1
 - `localflow/`: the app. `app.py` is the menu bar and dictation flow, `hotkey.py` the fn/modifier event tap, `audio.py` microphone capture, `stt.py` Whisper, `editor.py` AI edits, snippets, dictionary and Command Mode, `notetaker.py` meetings, `dashboard.py` with `static/index.html` the local web UI, `overlay.py` the Flow bar.
 - Data: `~/Library/Application Support/LocalFlow/` (settings.json, localflow.db, recordings/)
 - Log: `~/Library/Logs/LocalFlow.log`
+
+## License
+
+MIT. See [LICENSE](LICENSE).
