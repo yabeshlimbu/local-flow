@@ -20,8 +20,13 @@ int main(void) {
     posix_spawn_file_actions_addopen(&fa, 1, log, O_WRONLY | O_CREAT | O_APPEND, 0644);
     posix_spawn_file_actions_adddup2(&fa, 1, 2);
     char *argv[] = {py, "-m", "localflow", NULL};
-    pid_t pid;
-    if (posix_spawn(&pid, py, &fa, NULL, argv, environ) != 0) { perror("spawn"); return 1; }
-    int status; waitpid(pid, &status, 0);
-    return WEXITSTATUS(status);
+    // Exit code 75 means "restart me" (e.g. a permission was just granted).
+    for (int tries = 0; tries < 5; tries++) {
+        pid_t pid;
+        if (posix_spawn(&pid, py, &fa, NULL, argv, environ) != 0) { perror("spawn"); return 1; }
+        int status; waitpid(pid, &status, 0);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 75) return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+        sleep(1);
+    }
+    return 0;
 }

@@ -128,13 +128,22 @@ class Engine:
                     final_to_paste = final + " "  # so consecutive dictations don't stick together
                 else:
                     final_to_paste = final
-                macos.paste_text(final_to_paste, restore=settings["restore_clipboard"])
+                if macos.can_post_keystrokes():
+                    macos.paste_text(final_to_paste, restore=settings["restore_clipboard"])
+                    done_msg = None
+                else:
+                    # Not allowed to press ⌘V for the user: leave the text on the clipboard.
+                    macos.set_clipboard(final)
+                    done_msg = "Copied — press ⌘V"
                 storage.add_dictation(
                     mode=self.mode, app=self.bundle_id, app_name=self.app_name, raw=raw,
                     final=final, instruction=raw if self.mode == "command" else None,
                     language=stt.get("language"), duration=duration,
                     latency=time.time() - t0)
-                on_main(self.ui.overlay.setState_, "hidden")
+                if done_msg:
+                    on_main(self.ui.overlay.showMessage_, done_msg)
+                else:
+                    on_main(self.ui.overlay.setState_, "hidden")
                 print(f"[{self.mode} → {self.app_name} {style} {time.time()-t0:.2f}s] {final!r}")
             except Exception:
                 traceback.print_exc()
@@ -197,8 +206,9 @@ class LocalFlowApp(rumps.App):
         from .dashboard import serve
         threading.Thread(target=serve, args=(self,), daemon=True).start()
         macos.request_input_permissions()
-        if not macos.accessibility_trusted(prompt=True):
-            print("[boot] Accessibility permission not granted yet — paste/hotkeys need it.")
+        if not macos.can_post_keystrokes():
+            print("[boot] Not allowed to paste for you yet: dictated text will be copied "
+                  "to the clipboard (press ⌘V). Grant Accessibility to paste automatically.")
         try:
             self.hotkeys = HotkeyListener(settings.all, self.engine.start, self.engine.stop,
                                           self.engine.cancel)

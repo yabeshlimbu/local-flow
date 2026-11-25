@@ -5,7 +5,10 @@ hold-to-talk, double-tap hands-free lock, a Command-Mode modifier, and Esc to ca
 """
 from __future__ import annotations
 
+import os
 import queue
+import subprocess
+import sys
 import threading
 import time
 from typing import Callable
@@ -34,6 +37,17 @@ MODIFIER_FLAGS = {
     "shift": Quartz.kCGEventFlagMaskShift,
 }
 ESC = 53
+RESTART_CODE = 75  # tells the launcher to start LocalFlow again
+
+
+def _granted_in_fresh_process() -> bool:
+    try:
+        r = subprocess.run([sys.executable, "-c",
+                            "import Quartz; print(Quartz.CGPreflightListenEventAccess())"],
+                           capture_output=True, text=True, timeout=15)
+        return r.stdout.strip() == "True"
+    except Exception:
+        return False
 DOUBLE_TAP_WINDOW = 0.35
 MIN_HOLD = 0.18
 
@@ -51,6 +65,7 @@ class HotkeyListener:
         self._active = False
         self._tap = None
         self.permission_missing = False
+        self.listen_only = False
         self._swallow_release = False
         self._pressed = False  # physical key state, updated in the tap callback
         self._q: queue.Queue = queue.Queue()
@@ -132,7 +147,7 @@ class HotkeyListener:
                 self._q.put((self._release, ()))
         elif etype == Quartz.kCGEventKeyDown and code == ESC and self._active:
             self._q.put((self.cancel, ()))
-            return None  # swallow Esc while recording
+            return None  # swallow Esc while recording (ignored for listen-only taps)
         return event
 
     def run(self) -> None:
@@ -140,20 +155,34 @@ class HotkeyListener:
         mask = (Quartz.CGEventMaskBit(Quartz.kCGEventFlagsChanged)
                 | Quartz.CGEventMaskBit(Quartz.kCGEventKeyDown))
         warned = False
+        tried_restart = False
         while True:
-            self._tap = Quartz.CGEventTapCreate(
-                Quartz.kCGSessionEventTap, Quartz.kCGHeadInsertEventTap,
-                Quartz.kCGEventTapOptionDefault, mask, self._callback, None)
+            # Full tap (can swallow Esc) needs Accessibility; listen-only needs just
+            # Input Monitoring. Prefer full, fall back to listen-only.
+            for option in (Quartz.kCGEventTapOptionDefault, Quartz.kCGEventTapOptionListenOnly):
+                self._tap = Quartz.CGEventTapCreate(
+                    Quartz.kCGSessionEventTap, Quartz.kCGHeadInsertEventTap,
+                    option, mask, self._callback, None)
+                if self._tap is not None:
+                    self.listen_only = option == Quartz.kCGEventTapOptionListenOnly
+                    break
             if self._tap is not None:
                 break
             if not warned:
                 warned = True
                 self.permission_missing = True
-                print("[hotkey] Waiting for Accessibility + Input Monitoring permission "
-                      "(System Settings → Privacy & Security). Will start automatically.")
+                print("[hotkey] Waiting for Input Monitoring permission "
+                      "(System Settings → Privacy & Security → Input Monitoring).")
             time.sleep(2)
+            # macOS caches "denied" inside a running process, so a permission granted
+            # now is only visible to a fresh process. If a fresh one says yes, exit with
+            # code 75 and the launcher starts LocalFlow again (once).
+            if not tried_restart and _granted_in_fresh_process():
+                tried_restart = True
+                print("[hotkey] permission granted — restarting LocalFlow to apply it")
+                os._exit(RESTART_CODE)
         self.permission_missing = False
-        print("[hotkey] keyboard listener active")
+        print("[hotkey] keyboard listener active" + (" (listen-only)" if self.listen_only else ""))
         source = Quartz.CFMachPortCreateRunLoopSource(None, self._tap, 0)
         Quartz.CFRunLoopAddSource(Quartz.CFRunLoopGetCurrent(), source, Quartz.kCFRunLoopCommonModes)
         Quartz.CGEventTapEnable(self._tap, True)

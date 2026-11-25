@@ -92,3 +92,11 @@ def request_input_permissions() -> None:
             Quartz.CGRequestPostEventAccess()
     except Exception as exc:
         print(f"[permissions] {exc}")
+
+
+def can_post_keystrokes() -> bool:
+    """True if LocalFlow may press keys in other apps (needed to paste for you)."""
+    try:
+        return bool(Quartz.CGPreflightPostEventAccess()) or accessibility_trusted(prompt=False)
+    except Exception:
+        return accessibility_trusted(prompt=False)
