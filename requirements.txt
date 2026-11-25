@@ -1,0 +1,9 @@
+rumps
+pyobjc-framework-Cocoa
+pyobjc-framework-Quartz
+pyobjc-framework-ApplicationServices
+sounddevice
+numpy
+mlx-whisper
+requests
+flask

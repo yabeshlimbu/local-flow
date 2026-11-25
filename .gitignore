@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+LocalFlow.app/
+*.pyc
+.DS_Store
+*.log
+*.db
+*.wav
+settings.json
+.env

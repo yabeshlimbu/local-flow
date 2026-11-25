@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LocalFlow</title>
+<style>
+:root{
+  --bg:#f6f4ef; --panel:#fffdf8; --ink:#1d1b18; --muted:#6f6a61; --line:#e4dfd4;
+  --accent:#2f5d50; --accent-ink:#fff; --soft:#ecebe3; --danger:#a33a2c; --warn:#8a6a1f;
+  --radius:12px; --serif: "Iowan Old Style","Palatino",Georgia,serif;
+  --sans: -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
+  --mono: ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#151513; --panel:#1d1d1a; --ink:#ecebe5; --muted:#9c978c; --line:#2f2e2a;
+        --accent:#7fb8a4; --accent-ink:#0f1a16; --soft:#262622; --danger:#e07a6a; --warn:#d8b35a;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+nav{border-right:1px solid var(--line);padding:28px 16px;position:sticky;top:0;height:100vh}
+.brand{font:600 22px/1 var(--serif);padding:0 10px 4px;letter-spacing:-.01em}
+.tag{color:var(--muted);font-size:12px;padding:0 10px 24px}
+.tag b{color:var(--accent);font-weight:600}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--ink);
+  font:inherit;padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:2px}
+nav button:hover{background:var(--soft)}
+nav button.on{background:var(--ink);color:var(--bg)}
+main{padding:36px 44px 80px;max-width:1040px}
+h1{font:500 34px/1.15 var(--serif);margin:0 0 6px;letter-spacing:-.015em}
+h2{font:600 17px/1.3 var(--sans);margin:28px 0 10px}
+.sub{color:var(--muted);margin:0 0 24px;max-width:640px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.stat .n{font:500 32px/1 var(--serif);font-variant-numeric:tabular-nums}
+.stat .l{color:var(--muted);font-size:13px;margin-top:8px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:120px;padding-top:8px}
+.bars div{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85;position:relative}
+.bars div:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--bg);font-size:11px;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:8px 10px}
+textarea{width:100%;min-height:80px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.btn{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;
+  border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btn.sm{padding:3px 9px;font-size:13px}
+.item{border-top:1px solid var(--line);padding:14px 0}
+.item:first-child{border-top:0}
+.meta{color:var(--muted);font-size:12.5px;display:flex;gap:10px;flex-wrap:wrap}
+.pill{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:20px;background:var(--soft);color:var(--muted)}
+.pill.cmd{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+.final{margin:6px 0;white-space:pre-wrap}
+.raw{color:var(--muted);font-size:13px;white-space:pre-wrap}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:1px solid var(--line);padding:4px 6px 4px 12px;border-radius:20px;display:flex;gap:6px;align-items:center}
+.chip button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1}
+table{width:100%;border-collapse:collapse}
+td,th{text-align:left;padding:9px 8px;border-top:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:13px;border-top:0}
+.kbd{font:12px var(--mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--panel)}
+.set{display:grid;grid-template-columns:240px 1fr;gap:12px 20px;align-items:center}
+.set label{color:var(--muted)}
+.switch{position:relative;width:38px;height:22px;display:inline-block}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;background:var(--line);border-radius:22px;cursor:pointer;transition:.15s}
+.switch span::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span::before{transform:translateX(16px)}
+.md h2{font-size:15px;margin:16px 0 6px}
+.md ul{margin:4px 0;padding-left:20px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:8px 16px;border-radius:20px;font-size:14px;opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1}
+.live{border-left:3px solid var(--danger);padding-left:14px}
+.empty{color:var(--muted);padding:20px 0}
+.hidden{display:none}
+@media (max-width:760px){.shell{grid-template-columns:1fr}nav{position:static;height:auto;display:flex;flex-wrap:wrap;gap:4px;padding:14px 16px}
+  nav button{width:auto}.brand,.tag{width:100%}main{padding:20px 16px}.set{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="shell">
+<nav>
+  <div class="brand">LocalFlow</div>
+  <div class="tag" id="readyTag">Loading…</div>
+  <button data-tab="home" class="on">Home</button>
+  <button data-tab="history">History</button>
+  <button data-tab="dictionary">Dictionary</button>
+  <button data-tab="snippets">Snippets</button>
+  <button data-tab="styles">Styles</button>
+  <button data-tab="notes">Notetaker</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+<main>
+
+<section id="tab-home">
+  <h1>Speak. It types.</h1>
+  <p class="sub">Hold <span class="kbd" id="hk1">fn</span> in any app and talk; release to insert polished text.
+    Double-tap for hands-free. Add <span class="kbd" id="hk2">control</span> to rewrite selected text by voice. Everything runs on this Mac.</p>
+  <div class="grid">
+    <div class="card stat"><div class="n" id="sWords">0</div><div class="l">words dictated</div></div>
+    <div class="card stat"><div class="n" id="sWpm">0</div><div class="l">avg. words per minute</div></div>
+    <div class="card stat"><div class="n" id="sSaved">0</div><div class="l">minutes saved vs typing</div></div>
+    <div class="card stat"><div class="n" id="sStreak">0</div><div class="l">day streak</div></div>
+    <div class="card stat"><div class="n" id="sLat">0</div><div class="l">avg. seconds to text</div></div>
+  </div>
+  <h2>Last 30 days</h2>
+  <div class="card"><div class="bars" id="bars"></div></div>
+  <h2>Try the AI editor</h2>
+  <div class="card">
+    <textarea id="tryIn" placeholder="Type something like you'd say it: um so the meeting is at two, actually three, and bring the slides"></textarea>
+    <div class="row" style="margin-top:10px">
+      <select id="tryApp">
+        <option value="">Other app</option><option value="com.apple.mobilesms">Messages</option>
+        <option value="com.tinyspeck.slackmacgap">Slack</option><option value="com.apple.mail">Mail</option>
+      </select>
+      <button class="btn primary" id="tryBtn">Polish</button>
+      <span class="meta" id="tryMeta"></span>
+    </div>
+    <p class="final" id="tryOut"></p>
+  </div>
+</section>
+
+<section id="tab-history" class="hidden">
+  <h1>History</h1>
+  <p class="sub">Every dictation stays on this Mac. Fix a transcript and LocalFlow learns new names and terms for next time.</p>
+  <div class="row" style="margin-bottom:12px">
+    <input id="hq" placeholder="Search…" style="flex:1;min-width:200px">
+    <button class="btn danger" id="hclear">Clear all</button>
+  </div>
+  <div class="card" id="hlist"></div>
+</section>
+
+<section id="tab-dictionary" class="hidden">
+  <h1>Dictionary</h1>
+  <p class="sub">Names, jargon and acronyms. These bias the speech model's spelling and are enforced in the final text.</p>
+  <div class="row"><input id="dword" placeholder="e.g. Priya, Kubernetes, PyObjC" style="flex:1"><button class="btn primary" id="dadd">Add word</button></div>
+  <div class="chips" id="dlist" style="margin-top:14px"></div>
+  <h2>Replacements</h2>
+  <p class="sub">When the model consistently mishears something, map it to the right spelling.</p>
+  <div class="row"><input id="rfrom" placeholder="heard as… (cube ernetes)"><input id="rto" placeholder="should be… (Kubernetes)"><button class="btn primary" id="radd">Add</button></div>
+  <div class="card" style="margin-top:14px"><table><thead><tr><th>Heard</th><th>Written</th><th></th></tr></thead><tbody id="rlist"></tbody></table></div>
+</section>
+
+<section id="tab-snippets" class="hidden">
+  <h1>Snippets</h1>
+  <p class="sub">Say a short cue and get the full text — your address, a calendar link, a canned reply. Works on its own or inside a sentence.</p>
+  <div class="card">
+    <div class="row"><input id="strig" placeholder="Cue, e.g. “my calendar link”" style="flex:1"></div>
+    <textarea id="sexp" placeholder="Expansion" style="margin-top:10px"></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn primary" id="sadd">Save snippet</button></div>
+  </div>
+  <div class="card" style="margin-top:14px"><table><thead><tr><th style="width:30%">Say</th><th>Inserts</th><th></th></tr></thead><tbody id="slist"></tbody></table></div>
+</section>
+
+<section id="tab-styles" class="hidden">
+  <h1>Styles</h1>
+  <p class="sub">Tone adapts to the app you're typing in.</p>
+  <div class="card"><div class="set" id="stylesGrid"></div></div>
+  <h2>App categories</h2>
+  <p class="sub">Map an app's bundle ID (or part of it) to a category. Find one with <span class="kbd">osascript -e 'id of app "Notion"'</span>.</p>
+  <div class="row"><input id="abid" placeholder="notion.id"><select id="acat"></select><button class="btn primary" id="aadd">Add</button></div>
+  <div class="card" style="margin-top:14px"><table><thead><tr><th>Bundle ID</th><th>Category</th><th></th></tr></thead><tbody id="alist"></tbody></table></div>
+</section>
+
+<section id="tab-notes" class="hidden">
+  <h1>Notetaker</h1>
+  <p class="sub">Record a meeting or voice memo from your microphone. Get a transcript, summary, decisions and next steps — then ask questions across all meetings.</p>
+  <div class="card" id="liveCard">
+    <div class="row"><button class="btn primary" id="ntBtn">Start recording</button><span class="meta" id="ntStatus"></span>
+      <button class="btn hidden" id="ntCatch">What did I miss?</button></div>
+    <div id="ntLive" class="hidden" style="margin-top:14px">
+      <textarea id="ntNotes" placeholder="Your own notes (saved with the meeting)…"></textarea>
+      <p class="raw live" id="ntTranscript" style="margin-top:12px"></p>
+      <div class="md" id="ntCatchOut"></div>
+    </div>
+  </div>
+  <h2>Ask your meetings</h2>
+  <div class="card"><div class="row"><input id="askq" placeholder="What did we decide about the launch date?" style="flex:1"><button class="btn primary" id="askb">Ask</button></div>
+    <div class="md" id="askout" style="margin-top:10px"></div></div>
+  <h2>Meetings</h2>
+  <div class="card" id="mlist"></div>
+  <div class="card hidden" id="mview" style="margin-top:14px"></div>
+</section>
+
+<section id="tab-settings" class="hidden">
+  <h1>Settings</h1>
+  <p class="sub">Changes save immediately.</p>
+  <div class="card"><div class="set" id="setGrid"></div></div>
+  <p class="meta" style="margin-top:14px">Data folder: ~/Library/Application Support/LocalFlow</p>
+</section>
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let S={}, STATE={};
+const api=(u,o={})=>fetch(u,{headers:{'Content-Type':'application/json'},...o,body:o.body?JSON.stringify(o.body):undefined}).then(r=>r.json());
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1600)}
+async function save(patch,msg='Saved'){const r=await api('/api/settings',{method:'POST',body:patch});S=r.settings;toast(msg);renderAll()}
+function md(s){ // tiny markdown: headings, bullets, bold
+  return esc(s).split('\n').map(l=>{
+    if(/^#{1,3} /.test(l))return `<h2>${l.replace(/^#+ /,'')}</h2>`;
+    if(/^\s*[-*] /.test(l))return `<ul><li>${l.replace(/^\s*[-*] /,'')}</li></ul>`;
+    return l?`<p style="margin:4px 0">${l}</p>`:'';
+  }).join('').replace(/<\/ul><ul>/g,'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+}
+const ago=t=>{const d=(Date.now()/1000-t);if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return new Date(t*1000).toLocaleDateString()};
+
+// tabs
+$$('nav button').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+function show(tab){$$('nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab===tab));
+  $$('main section').forEach(s=>s.classList.toggle('hidden',s.id!=='tab-'+tab));
+  if(tab==='history')loadHistory(); if(tab==='notes')loadMeetings();}
+
+async function refresh(){
+  STATE=await api('/api/state'); S=STATE.settings;
+  $('#readyTag').innerHTML=STATE.ready?'<b>●</b> Ready · 100% local':'Loading models…';
+  const st=STATE.stats;
+  $('#sWords').textContent=st.words.toLocaleString(); $('#sWpm').textContent=st.wpm;
+  $('#sSaved').textContent=st.minutes_saved; $('#sStreak').textContent=st.streak; $('#sLat').textContent=st.avg_latency;
+  const days=[];for(let i=29;i>=0;i--){const d=new Date(Date.now()-i*864e5);days.push(d.toLocaleDateString('en-CA'))}
+  const map=Object.fromEntries(st.daily.map(r=>[r.d,r.w])), mx=Math.max(1,...Object.values(map));
+  $('#bars').innerHTML=days.map(d=>`<div style="height:${(map[d]||0)/mx*100}%" data-t="${d}: ${map[d]||0} words"></div>`).join('');
+  $('#hk1').textContent=S.dictation_key.replace('_',' '); $('#hk2').textContent=S.dictation_key.replace('_',' ')+' + '+S.command_modifier;
+  renderNotetaker(); renderAll();
+}
+function renderAll(){renderDict();renderSnippets();renderStyles();renderSettings()}
+
+// try editor
+$('#tryBtn').onclick=async()=>{const t0=performance.now();$('#tryOut').textContent='…';
+  const r=await api('/api/test-edit',{method:'POST',body:{text:$('#tryIn').value,app:$('#tryApp').value}});
+  $('#tryOut').textContent=r.text;$('#tryMeta').textContent=`${r.used_llm?'AI':'rules'} · ${r.style} · ${((performance.now()-t0)/1000).toFixed(2)}s`}
+
+// history
+async function loadHistory(){const rows=await api('/api/history?q='+encodeURIComponent($('#hq').value));
+  $('#hlist').innerHTML=rows.length?rows.map(r=>`<div class="item" data-id="${r.id}">
+    <div class="meta"><span class="pill ${r.mode==='command'?'cmd':''}">${r.mode}</span><span>${esc(r.app_name||'')}</span><span>${ago(r.created)}</span>
+      <span>${r.words} words</span><span>${(r.latency||0).toFixed(2)}s</span>${r.language?`<span>${r.language}</span>`:''}</div>
+    <div class="final" contenteditable="true" spellcheck="false">${esc(r.final)}</div>
+    ${r.raw&&r.raw!==r.final?`<div class="raw">${r.mode==='command'?'Instruction: ':'Heard: '}${esc(r.raw)}</div>`:''}
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="copy">Copy</button><button class="btn sm" data-a="learn">Save correction</button>
+      <button class="btn sm danger" data-a="del">Delete</button></div></div>`).join(''):'<div class="empty">Nothing yet. Hold your dictation key in any app and start talking.</div>';
+  $$('#hlist .item').forEach(el=>{const r=rows.find(x=>x.id==el.dataset.id);
+    el.querySelector('[data-a=copy]').onclick=()=>{navigator.clipboard.writeText(el.querySelector('.final').innerText);toast('Copied')};
+    el.querySelector('[data-a=del]').onclick=async()=>{await api('/api/history/'+r.id,{method:'DELETE'});el.remove()};
+    el.querySelector('[data-a=learn]').onclick=async()=>{const x=await api('/api/learn',{method:'POST',body:{original:r.final,corrected:el.querySelector('.final').innerText}});
+      toast(x.learned.length?'Learned: '+x.learned.join(', '):'No new words to learn');refresh()};});}
+$('#hq').oninput=()=>{clearTimeout(window._hq);window._hq=setTimeout(loadHistory,250)};
+$('#hclear').onclick=async()=>{if(confirm('Delete all dictation history?')){await api('/api/history',{method:'DELETE'});loadHistory();refresh()}};
+
+// dictionary
+function renderDict(){$('#dlist').innerHTML=S.dictionary.map((w,i)=>`<span class="chip">${esc(w)}<button data-i="${i}" title="Remove">×</button></span>`).join('')||'<span class="empty">No words yet.</span>';
+  $$('#dlist button').forEach(b=>b.onclick=()=>{const d=[...S.dictionary];d.splice(b.dataset.i,1);save({dictionary:d},'Removed')});
+  $('#rlist').innerHTML=Object.entries(S.replacements).map(([a,b])=>`<tr><td>${esc(a)}</td><td>${esc(b)}</td><td style="text-align:right"><button class="btn sm danger" data-k="${esc(a)}">Remove</button></td></tr>`).join('')||'<tr><td colspan=3 class="empty">None.</td></tr>';
+  $$('#rlist button').forEach(b=>b.onclick=()=>{const r={...S.replacements};delete r[b.dataset.k];save({replacements:r},'Removed')});}
+$('#dadd').onclick=()=>{const ws=$('#dword').value.split(',').map(s=>s.trim()).filter(Boolean);if(!ws.length)return;
+  save({dictionary:[...new Set([...S.dictionary,...ws])]},'Added');$('#dword').value=''};
+$('#dword').onkeydown=e=>{if(e.key==='Enter')$('#dadd').click()};
+$('#radd').onclick=()=>{const a=$('#rfrom').value.trim(),b=$('#rto').value.trim();if(!a||!b)return;save({replacements:{...S.replacements,[a]:b}},'Added');$('#rfrom').value=$('#rto').value=''};
+
+// snippets
+function renderSnippets(){$('#slist').innerHTML=Object.entries(S.snippets).map(([a,b])=>`<tr><td><b>${esc(a)}</b></td><td class="raw">${esc(b)}</td><td style="text-align:right;white-space:nowrap"><button class="btn sm" data-e="${esc(a)}">Edit</button> <button class="btn sm danger" data-k="${esc(a)}">Remove</button></td></tr>`).join('')||'<tr><td colspan=3 class="empty">No snippets yet.</td></tr>';
+  $$('#slist [data-k]').forEach(b=>b.onclick=()=>{const r={...S.snippets};delete r[b.dataset.k];save({snippets:r},'Removed')});
+  $$('#slist [data-e]').forEach(b=>b.onclick=()=>{$('#strig').value=b.dataset.e;$('#sexp').value=S.snippets[b.dataset.e];window.scrollTo(0,0)});}
+$('#sadd').onclick=()=>{const a=$('#strig').value.trim(),b=$('#sexp').value;if(!a||!b)return;save({snippets:{...S.snippets,[a]:b}},'Snippet saved');$('#strig').value=$('#sexp').value=''};
+
+// styles
+const CATS={personal_messages:'Personal messages',work_messages:'Work messages',email:'Email',other:'Everything else'};
+const TONES={formal:'Formal',casual:'Casual',very_casual:'Very casual',none:'As spoken (no tone change)'};
+function renderStyles(){
+  $('#stylesGrid').innerHTML=Object.entries(CATS).map(([k,l])=>`<label>${l}</label><select data-c="${k}">${Object.entries(TONES).map(([t,tl])=>`<option value="${t}" ${S.styles[k]===t?'selected':''}>${tl}</option>`).join('')}</select>`).join('');
+  $$('#stylesGrid select').forEach(s=>s.onchange=()=>save({styles:{...S.styles,[s.dataset.c]:s.value}}));
+  $('#acat').innerHTML=Object.entries(CATS).filter(([k])=>k!=='other').map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+  $('#alist').innerHTML=Object.entries(S.app_categories).map(([a,c])=>`<tr><td class="raw" style="font-family:var(--mono)">${esc(a)}</td><td>${CATS[c]||c}</td><td style="text-align:right"><button class="btn sm danger" data-k="${esc(a)}">Remove</button></td></tr>`).join('');
+  $$('#alist button').forEach(b=>b.onclick=()=>{const r={...S.app_categories};delete r[b.dataset.k];save({app_categories:r},'Removed')});}
+$('#aadd').onclick=()=>{const a=$('#abid').value.trim().toLowerCase();if(!a)return;save({app_categories:{...S.app_categories,[a]:$('#acat').value}},'Added');$('#abid').value=''};
+
+// settings
+const LANGS={auto:'Auto-detect',en:'English',ne:'Nepali',hi:'Hindi',es:'Spanish',fr:'French',de:'German',pt:'Portuguese',it:'Italian',ja:'Japanese',ko:'Korean',zh:'Chinese',ar:'Arabic',ru:'Russian',bn:'Bengali',ur:'Urdu',tr:'Turkish',nl:'Dutch',pl:'Polish',uk:'Ukrainian',vi:'Vietnamese',id:'Indonesian',th:'Thai',ta:'Tamil',te:'Telugu'};
+function sel(key,opts){return `<select data-k="${key}">${Object.entries(opts).map(([v,l])=>`<option value="${esc(v)}" ${String(S[key])===String(v)?'selected':''}>${esc(l)}</option>`).join('')}</select>`}
+function sw(key){return `<label class="switch"><input type="checkbox" data-k="${key}" ${S[key]?'checked':''}><span></span></label>`}
+function renderSettings(){
+  const models=Object.fromEntries((STATE.models||[]).filter(m=>!m.includes('embed')).map(m=>[m,m])); if(!models[S.llm_model])models[S.llm_model]=S.llm_model+' (not installed)';
+  const devs={'':'System default',...Object.fromEntries((STATE.devices||[]).map(d=>[d.index,d.name]))};
+  const rows=[
+   ['Dictation key',sel('dictation_key',{fn:'fn / 🌐',right_option:'Right ⌥ Option',right_command:'Right ⌘ Command',right_control:'Right ⌃ Control',right_shift:'Right ⇧ Shift'})],
+   ['Command Mode modifier',sel('command_modifier',{control:'⌃ Control',option:'⌥ Option',command:'⌘ Command',shift:'⇧ Shift'})],
+   ['Command Mode',sw('command_mode')],['Double-tap for hands-free',sw('hands_free_double_tap')],
+   ['Language',sel('language',LANGS)],
+   ['Speech model',sel('whisper_model',{'mlx-community/whisper-large-v3-turbo':'Whisper large-v3 turbo (best balance)','mlx-community/whisper-large-v3-mlx':'Whisper large-v3 (most accurate, slower)','mlx-community/whisper-small-mlx':'Whisper small (fastest)','mlx-community/distil-whisper-large-v3':'Distil-Whisper large-v3 (English, fast)'})],
+   ['AI edits',sw('ai_edits')],['AI model (Ollama)',sel('llm_model',models)],
+   ['Whisper mode (quiet speech)',sw('whisper_mode')],['Microphone',sel('input_device',devs)],
+   ['Sound effects',sw('sounds')],['Restore clipboard after paste',sw('restore_clipboard')],
+   ['Max recording (seconds)',`<input type="number" data-k="max_recording_seconds" value="${S.max_recording_seconds}" min="10" max="1800" style="width:110px">`],
+  ];
+  $('#setGrid').innerHTML=rows.map(([l,c])=>`<label>${l}</label><div>${c}</div>`).join('');
+  $$('#setGrid [data-k]').forEach(el=>el.onchange=()=>{let v=el.type==='checkbox'?el.checked:el.value;
+    if(el.dataset.k==='input_device')v=v===''?null:Number(v); if(el.dataset.k==='max_recording_seconds')v=Number(v);
+    save({[el.dataset.k]:v},el.dataset.k.includes('key')||el.dataset.k==='command_modifier'?'Saved — restart LocalFlow to update the menu text':'Saved')});}
+
+// notetaker
+function renderNotetaker(){const n=STATE.notetaker;
+  $('#ntBtn').textContent=n.active?'Stop & summarize':'Start recording';
+  $('#ntStatus').textContent=n.active?'● Recording — transcript updates every 30s':(n.status!=='idle'?n.status+'…':'');
+  $('#ntLive').classList.toggle('hidden',!n.active); $('#ntCatch').classList.toggle('hidden',!n.active);
+  if(n.active)$('#ntTranscript').textContent=n.transcript||'Listening…';
+  if(n.status!=='idle'&&!n.active&&!window._wasBusy){window._wasBusy=true}
+  if(n.status==='idle'&&window._wasBusy){window._wasBusy=false;loadMeetings()}}
+$('#ntBtn').onclick=async()=>{await api('/api/notetaker/toggle',{method:'POST'});setTimeout(refresh,600)};
+$('#ntNotes').oninput=()=>{clearTimeout(window._nn);window._nn=setTimeout(()=>api('/api/notetaker/notes',{method:'POST',body:{notes:$('#ntNotes').value}}),400)};
+$('#ntCatch').onclick=async()=>{$('#ntCatchOut').textContent='Catching up…';const r=await api('/api/notetaker/catchup',{method:'POST'});$('#ntCatchOut').innerHTML=md(r.answer)};
+async function loadMeetings(){const ms=await api('/api/meetings');
+  $('#mlist').innerHTML=ms.length?ms.map(m=>`<div class="item"><div class="row" style="justify-content:space-between"><div><b>${esc(m.title)}</b>
+    <div class="meta"><span>${new Date(m.created*1000).toLocaleString()}</span><span>${Math.round((m.duration||0)/60)} min</span></div></div>
+    <button class="btn sm" data-m="${m.id}">Open</button></div></div>`).join(''):'<div class="empty">No meetings yet.</div>';
+  $$('#mlist [data-m]').forEach(b=>b.onclick=()=>openMeeting(b.dataset.m));
+  const h=location.hash.match(/meeting-(\d+)/); if(h){openMeeting(h[1]);history.replaceState(null,'',' ')}}
+async function openMeeting(id){const m=await api('/api/meetings/'+id);const v=$('#mview');v.classList.remove('hidden');
+  v.innerHTML=`<div class="row" style="justify-content:space-between"><input id="mt" value="${esc(m.title)}" style="font:500 20px var(--serif);flex:1;border:0;padding:0;background:none">
+    <button class="btn sm" id="mcopy">Copy notes</button><button class="btn sm danger" id="mdel">Delete</button></div>
+    <div class="meta">${new Date(m.created*1000).toLocaleString()} · ${Math.round((m.duration||0)/60)} min</div>
+    <div class="md">${md(m.summary||'Summarizing…')}</div>${m.notes?`<h2>Your notes</h2><p class="final">${esc(m.notes)}</p>`:''}
+    <h2>Transcript</h2><p class="raw">${esc(m.transcript||'')}</p>`;
+  $('#mt').onchange=()=>api('/api/meetings/'+id,{method:'POST',body:{title:$('#mt').value}}).then(()=>{toast('Renamed');loadMeetings()});
+  $('#mcopy').onclick=()=>{navigator.clipboard.writeText(m.title+'\n\n'+m.summary);toast('Copied')};
+  $('#mdel').onclick=async()=>{if(confirm('Delete this meeting?')){await api('/api/meetings/'+id,{method:'DELETE'});v.classList.add('hidden');loadMeetings()}};
+  show('notes'); v.scrollIntoView({behavior:'smooth'});}
+$('#askb').onclick=async()=>{const q=$('#askq').value.trim();if(!q)return;$('#askout').textContent='Thinking…';
+  const r=await api('/api/ask',{method:'POST',body:{question:q}});$('#askout').innerHTML=md(r.answer)+(r.sources.length?`<p class="meta">Sources: ${r.sources.map(s=>`<a href="#" data-m="${s.id}">${esc(s.title)}</a>`).join(', ')}</p>`:'');
+  $$('#askout [data-m]').forEach(a=>a.onclick=e=>{e.preventDefault();openMeeting(a.dataset.m)})};
+$('#askq').onkeydown=e=>{if(e.key==='Enter')$('#askb').click()};
+
+if(location.hash.startsWith('#meeting-'))show('notes');
+refresh(); setInterval(()=>{if(!document.hidden && !document.activeElement.matches('input,textarea,[contenteditable]'))refresh()},4000);
+</script>
+</body>
+</html>
