@@ -10,7 +10,9 @@ Voice dictation for macOS that runs entirely on your Mac. Hold a key in any app,
 open LocalFlow.app
 ```
 
-`LocalFlow.app` launches the code in this folder, so keep the folder where it is. You can drag the app to `/Applications` or add it to *Login Items* so it starts at login. If you move the folder, rebuild the app with `packaging/build_app.sh`. You can also run it from a terminal with `./run.sh`.
+`LocalFlow.app` launches the code in this folder, so keep the folder where it is.
+
+To build it yourself, run `packaging/make_signing_cert.sh` once, then `packaging/build_app.sh`. The first script creates a code-signing certificate that never leaves your Mac. Signing with it means macOS keeps LocalFlow's permissions when you rebuild; without it, every rebuild makes you grant them again. You can drag the app to `/Applications` or add it to *Login Items* so it starts at login. If you move the folder, rebuild the app with `packaging/build_app.sh`. You can also run it from a terminal with `./run.sh`.
 
 ### One-time macOS setup
 1. **Accessibility** and **Input Monitoring**: System Settings → Privacy & Security → add and enable **LocalFlow**. The hotkey starts by itself once these are granted, so you don't need to restart.

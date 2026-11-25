@@ -25,5 +25,15 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>NSAppleEventsUsageDescription</key><string>LocalFlow pastes dictated text into the focused app.</string>
 </dict></plist>
 PLIST
-codesign --force --deep --sign - "$APP"
+# Sign with the stable local certificate when it exists (see make_signing_cert.sh) so
+# macOS keeps LocalFlow's permissions across rebuilds; otherwise fall back to ad hoc.
+IDENTITY="$(security find-identity -p codesigning "$HOME/Library/Keychains/login.keychain-db" 2>/dev/null \
+  | awk '/"LocalFlow Code Signing"/ {print $2; exit}')"
+if [ -n "$IDENTITY" ]; then
+  codesign --force --deep --sign "$IDENTITY" "$APP"
+  echo "Signed with \"LocalFlow Code Signing\" (permissions survive rebuilds)"
+else
+  codesign --force --deep --sign - "$APP"
+  echo "Signed ad hoc. Run packaging/make_signing_cert.sh once so rebuilds keep permissions."
+fi
 echo "Built $APP"
